@@ -1,3 +1,13 @@
+
+```shell
+python -m yolox.tools.train -n yolox-s -d 1 -b 16 -o  --resume YOLOX_outputs/yolox_s/latest_ckpt.pth  --logger tensorboard --cache 
+```
+
+```
+python -m yolox.tools.train -n yolox-s -d 1 -b 64 -o --cache
+```
+
+
 <div align="center"><img src="assets/logo.png" width="350"></div>
 <img src="assets/demo.png" >
 
