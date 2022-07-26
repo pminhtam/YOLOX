@@ -29,7 +29,7 @@ class Exp(BaseExp):
         # ---------------- dataloader config ---------------- #
         # set worker to 4 for shorter dataloader init time
         # If your training process cost many memory, reduce this value.
-        self.data_num_workers = 4
+        self.data_num_workers = 16
         self.input_size = (640, 640)  # (height, width)
         # Actual multiscale ranges: [640 - 5 * 32, 640 + 5 * 32].
         # To disable multiscale training, set the value to 0.
@@ -39,12 +39,15 @@ class Exp(BaseExp):
         # dir of dataset images, if data_dir is None, this project will use `datasets` dir
         self.data_dir = None
         # name of annotation file for training
-        self.train_ann = "instances_train2017.json"
+        # self.train_ann = "instances_train2017.json"
+        self.train_ann = "instances_train2014.json"
         # name of annotation file for evaluation
-        self.val_ann = "instances_val2017.json"
+        # self.val_ann = "instances_val2017.json"
+        self.val_ann = "instances_val2014.json"
         # name of annotation file for testing
-        self.test_ann = "instances_test2017.json"
-
+        # self.test_ann = "instances_test2017.json"
+        self.test_ann = "instances_test2014.json"
+        self.name = "train2014"
         # --------------- transform config ----------------- #
         # prob of applying mosaic aug
         self.mosaic_prob = 1.0
@@ -88,7 +91,7 @@ class Exp(BaseExp):
         self.momentum = 0.9
         # log period in iter, for example,
         # if set to 1, user could see log every iteration.
-        self.print_interval = 10
+        self.print_interval = 100
         # eval period in epoch, for example,
         # if set to 1, model will be evaluate after every epoch.
         self.eval_interval = 10
@@ -143,6 +146,7 @@ class Exp(BaseExp):
             dataset = COCODataset(
                 data_dir=self.data_dir,
                 json_file=self.train_ann,
+                name = self.name,
                 img_size=self.input_size,
                 preproc=TrainTransform(
                     max_labels=50,
@@ -275,7 +279,7 @@ class Exp(BaseExp):
         valdataset = COCODataset(
             data_dir=self.data_dir,
             json_file=self.val_ann if not testdev else self.test_ann,
-            name="val2017" if not testdev else "test2017",
+            name="val2014" if not testdev else "test2014",
             img_size=self.test_size,
             preproc=ValTransform(legacy=legacy),
         )
