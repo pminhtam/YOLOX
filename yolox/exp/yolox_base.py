@@ -29,7 +29,7 @@ class Exp(BaseExp):
         # ---------------- dataloader config ---------------- #
         # set worker to 4 for shorter dataloader init time
         # If your training process cost many memory, reduce this value.
-        self.data_num_workers = 16
+        self.data_num_workers = 32
         self.input_size = (640, 640)  # (height, width)
         # Actual multiscale ranges: [640 - 5 * 32, 640 + 5 * 32].
         # To disable multiscale training, set the value to 0.
@@ -37,7 +37,10 @@ class Exp(BaseExp):
         # You can uncomment this line to specify a multiscale range
         # self.random_size = (14, 26)
         # dir of dataset images, if data_dir is None, this project will use `datasets` dir
-        self.data_dir = None
+        # self.data_dir = None
+        # self.data_dir = "/home/ubuntu/arp_data/VOC/VOCdevkit/"
+        self.dataset_type = "voc"
+        self.data_dir = "/lustre/scratch/client/vinai/users/tampm2/ssd.pytorch/data/VOCdevkit"
         # name of annotation file for training
         # self.train_ann = "instances_train2017.json"
         self.train_ann = "instances_train2014.json"
@@ -138,23 +141,33 @@ class Exp(BaseExp):
             DataLoader,
             InfiniteSampler,
             MosaicDetection,
-            worker_init_reset_seed,
+            worker_init_reset_seed,VOCDetection
         )
         from yolox.utils import wait_for_the_master
 
         with wait_for_the_master():
-            dataset = COCODataset(
-                data_dir=self.data_dir,
-                json_file=self.train_ann,
-                name = self.name,
-                img_size=self.input_size,
-                preproc=TrainTransform(
-                    max_labels=50,
-                    flip_prob=self.flip_prob,
-                    hsv_prob=self.hsv_prob),
-                cache=cache_img,
-            )
-
+            if self.dataset_type == 'coco':
+                dataset = COCODataset(
+                    data_dir=self.data_dir,
+                    json_file=self.train_ann,
+                    name = self.name,
+                    img_size=self.input_size,
+                    preproc=TrainTransform(
+                        max_labels=50,
+                        flip_prob=self.flip_prob,
+                        hsv_prob=self.hsv_prob),
+                    cache=cache_img,
+                )
+            elif self.dataset_type == 'voc':
+                dataset = VOCDetection(data_dir=self.data_dir,
+                                       img_size=self.input_size,
+                                       preproc=TrainTransform(
+                                           max_labels=50,
+                                           flip_prob=self.flip_prob,
+                                           hsv_prob=self.hsv_prob),
+                                       cache=cache_img,)
+            else:
+                raise NotImplementedError
         dataset = MosaicDetection(
             dataset,
             mosaic=not no_aug,
@@ -274,16 +287,24 @@ class Exp(BaseExp):
         return scheduler
 
     def get_eval_loader(self, batch_size, is_distributed, testdev=False, legacy=False):
-        from yolox.data import COCODataset, ValTransform
-
-        valdataset = COCODataset(
-            data_dir=self.data_dir,
-            json_file=self.val_ann if not testdev else self.test_ann,
-            name="val2014" if not testdev else "test2014",
-            img_size=self.test_size,
-            preproc=ValTransform(legacy=legacy),
-        )
-
+        from yolox.data import COCODataset, ValTransform, VOCDetection
+        if self.dataset_type == 'coco':
+            valdataset = COCODataset(
+                data_dir=self.data_dir,
+                json_file=self.val_ann if not testdev else self.test_ann,
+                name="val2014" if not testdev else "test2014",
+                img_size=self.test_size,
+                preproc=ValTransform(legacy=legacy),
+            )
+        elif self.dataset_type == 'voc':
+            valdataset = VOCDetection(
+                data_dir=self.data_dir,
+                image_sets=[('2007', 'test')],
+                img_size=self.test_size,
+                preproc=ValTransform(legacy=legacy),
+            )
+        else:
+            raise NotImplementedError
         if is_distributed:
             batch_size = batch_size // dist.get_world_size()
             sampler = torch.utils.data.distributed.DistributedSampler(
@@ -303,17 +324,28 @@ class Exp(BaseExp):
         return val_loader
 
     def get_evaluator(self, batch_size, is_distributed, testdev=False, legacy=False):
-        from yolox.evaluators import COCOEvaluator
+        from yolox.evaluators import COCOEvaluator,VOCEvaluator
 
         val_loader = self.get_eval_loader(batch_size, is_distributed, testdev, legacy)
-        evaluator = COCOEvaluator(
-            dataloader=val_loader,
-            img_size=self.test_size,
-            confthre=self.test_conf,
-            nmsthre=self.nmsthre,
-            num_classes=self.num_classes,
-            testdev=testdev,
-        )
+        if self.dataset_type == 'coco':
+            evaluator = COCOEvaluator(
+                dataloader=val_loader,
+                img_size=self.test_size,
+                confthre=self.test_conf,
+                nmsthre=self.nmsthre,
+                num_classes=self.num_classes,
+                testdev=testdev,
+            )
+        elif self.dataset_type == 'voc':
+            evaluator = VOCEvaluator(
+                dataloader=val_loader,
+                img_size=self.test_size,
+                confthre=self.test_conf,
+                nmsthre=self.nmsthre,
+                num_classes=self.num_classes,
+            )
+        else:
+            raise NotImplementedError
         return evaluator
 
     def get_trainer(self, args):
