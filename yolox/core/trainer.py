@@ -50,7 +50,7 @@ class Trainer:
         self.device = "cuda:{}".format(self.local_rank)
         self.use_model_ema = exp.ema
         self.save_history_ckpt = exp.save_history_ckpt
-
+        self.clip_grad = False
         # data/dataloader related attr
         self.data_type = torch.float16 if args.fp16 else torch.float32
         self.input_size = exp.input_size
@@ -108,6 +108,8 @@ class Trainer:
 
         self.optimizer.zero_grad()
         self.scaler.scale(loss).backward()
+        if self.clip_grad:
+            nn.utils.clip_grad_norm_(self.model.parameters(), max_norm = 5)
         self.scaler.step(self.optimizer)
         self.scaler.update()
 
