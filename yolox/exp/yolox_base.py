@@ -13,7 +13,7 @@ from .base_exp import BaseExp
 
 
 class Exp(BaseExp):
-    def __init__(self):
+    def __init__(self,is_binary_backbone=False,is_binary_head=False,clip_grad=False):
         super().__init__()
 
         # ---------------- model config ---------------- #
@@ -41,6 +41,12 @@ class Exp(BaseExp):
         # self.data_dir = "/home/ubuntu/arp_data/VOC/VOCdevkit/"
         self.dataset_type = "voc"
         self.data_dir = "/lustre/scratch/client/vinai/users/tampm2/ssd.pytorch/data/VOCdevkit"
+        self.is_binary_head = is_binary_head
+        self.is_binary_backbone = is_binary_backbone
+        self.clip_grad = clip_grad
+        print("yolo_base.py  is_binary_head : ", self.is_binary_head)
+        print("yolo_base.py  is_binary_backbone : ", self.is_binary_backbone)
+        print("yolo_base.py  clip_grad : ", self.clip_grad)
         # name of annotation file for training
         # self.train_ann = "instances_train2017.json"
         self.train_ann = "instances_train2014.json"
@@ -124,8 +130,8 @@ class Exp(BaseExp):
 
         if getattr(self, "model", None) is None:
             in_channels = [256, 512, 1024]
-            backbone = YOLOPAFPN(self.depth, self.width, in_channels=in_channels, act=self.act)
-            head = YOLOXHead(self.num_classes, self.width, in_channels=in_channels, act=self.act)
+            backbone = YOLOPAFPN(self.depth, self.width, in_channels=in_channels, act=self.act,is_binary=self.is_binary_backbone)
+            head = YOLOXHead(self.num_classes, self.width, in_channels=in_channels, act=self.act,is_binary=self.is_binary_head)
             self.model = YOLOX(backbone, head)
 
         self.model.apply(init_yolo)
@@ -350,7 +356,7 @@ class Exp(BaseExp):
 
     def get_trainer(self, args):
         from yolox.core import Trainer
-        trainer = Trainer(self, args)
+        trainer = Trainer(self, args,clip_grad=self.clip_grad)
         # NOTE: trainer shouldn't be an attribute of exp object
         return trainer
 

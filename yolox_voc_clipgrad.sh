@@ -29,4 +29,4 @@ pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f ht
 #tar -xvf /vinai-public-dataset/VOC2012/VOCtrainval_11-May-2012.tar -C data/
 #tar -xvf /vinai-public-dataset/VOC2007/VOCtrainval_06-Nov-2007.tar -C data/
 #tar -xvf /vinai-public-dataset/VOC2007/VOCtest_06-Nov-2007.tar -C data/
-python -m yolox.tools.train -n yolox-s -d 1 -b 16 -o  --resume YOLOX_outputs/yolox_s_clip_voc_bnn/latest_ckpt.pth --cache -expn yolox_s_clip_voc_bnn
+python -m yolox.tools.train -n yolox-s -d 1 -b 32 -o --cache -expn yolox_s_clip_voc_bnn_fix --binary_backbone --binary_head --clip_grad --resume

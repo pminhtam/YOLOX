@@ -102,6 +102,7 @@ class CSPDarknet(nn.Module):
         out_features=("dark3", "dark4", "dark5"),
         depthwise=False,
         act="silu",
+            is_binary=False
     ):
         super().__init__()
         assert out_features, "please provide output features of Darknet"
@@ -112,17 +113,18 @@ class CSPDarknet(nn.Module):
         base_depth = max(round(dep_mul * 3), 1)  # 3
 
         # stem
-        self.stem = Focus(3, base_channels, ksize=3, act=act)
+        self.stem = Focus(3, base_channels, ksize=3, act=act,is_binary = is_binary)
 
         # dark2
         self.dark2 = nn.Sequential(
-            Conv(base_channels, base_channels * 2, 3, 2, act=act),
+            Conv(base_channels, base_channels * 2, 3, 2, act=act,is_binary = is_binary),
             CSPLayer(
                 base_channels * 2,
                 base_channels * 2,
                 n=base_depth,
                 depthwise=depthwise,
                 act=act,
+                is_binary=is_binary
             ),
         )
 
@@ -135,6 +137,7 @@ class CSPDarknet(nn.Module):
                 n=base_depth * 3,
                 depthwise=depthwise,
                 act=act,
+                is_binary=is_binary
             ),
         )
 
@@ -147,6 +150,7 @@ class CSPDarknet(nn.Module):
                 n=base_depth * 3,
                 depthwise=depthwise,
                 act=act,
+                is_binary=is_binary
             ),
         )
 
@@ -161,6 +165,7 @@ class CSPDarknet(nn.Module):
                 shortcut=False,
                 depthwise=depthwise,
                 act=act,
+                is_binary=is_binary
             ),
         )
 

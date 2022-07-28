@@ -24,6 +24,7 @@ class YOLOXHead(nn.Module):
         in_channels=[256, 512, 1024],
         act="silu",
         depthwise=False,
+            is_binary= False
     ):
         """
         Args:
@@ -62,14 +63,14 @@ class YOLOXHead(nn.Module):
                             out_channels=int(256 * width),
                             ksize=3,
                             stride=1,
-                            act=act,
+                            act=act,is_binary=is_binary
                         ),
                         Conv(
                             in_channels=int(256 * width),
                             out_channels=int(256 * width),
                             ksize=3,
                             stride=1,
-                            act=act,
+                            act=act,is_binary=is_binary
                         ),
                     ]
                 )
@@ -82,14 +83,14 @@ class YOLOXHead(nn.Module):
                             out_channels=int(256 * width),
                             ksize=3,
                             stride=1,
-                            act=act,
+                            act=act,is_binary=is_binary
                         ),
                         Conv(
                             in_channels=int(256 * width),
                             out_channels=int(256 * width),
                             ksize=3,
                             stride=1,
-                            act=act,
+                            act=act,is_binary=is_binary
                         ),
                     ]
                 )
@@ -146,6 +147,7 @@ class YOLOXHead(nn.Module):
         x_shifts = []
         y_shifts = []
         expanded_strides = []
+        # sources = list()
 
         for k, (cls_conv, reg_conv, stride_this_level, x) in enumerate(
             zip(self.cls_convs, self.reg_convs, self.strides, xin)
@@ -153,13 +155,15 @@ class YOLOXHead(nn.Module):
             x = self.stems[k](x)
             cls_x = x
             reg_x = x
-
+            # sources.append(x)
             cls_feat = cls_conv(cls_x)
             cls_output = self.cls_preds[k](cls_feat)
+            # sources.append(cls_feat)
 
             reg_feat = reg_conv(reg_x)
             reg_output = self.reg_preds[k](reg_feat)
             obj_output = self.obj_preds[k](reg_feat)
+            # sources.append(reg_feat)
 
             if self.training:
                 output = torch.cat([reg_output, obj_output, cls_output], 1)

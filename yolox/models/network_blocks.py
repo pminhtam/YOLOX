@@ -25,30 +25,45 @@ def get_activation(name="silu", inplace=True):
         raise AttributeError("Unsupported act type: {}".format(name))
     return module
 
-
+from yolox.models.binary_utils import BinarizeConv2d
 class BaseConv(nn.Module):
     """A Conv2d -> Batchnorm -> silu/leaky relu block"""
 
     def __init__(
-        self, in_channels, out_channels, ksize, stride, groups=1, bias=False, act="silu"
+        self, in_channels, out_channels, ksize, stride, groups=1, bias=False, act="silu",is_binary=True
     ):
         super().__init__()
         # same padding
         pad = (ksize - 1) // 2
-        self.conv = nn.Conv2d(
-            in_channels,
-            out_channels,
-            kernel_size=ksize,
-            stride=stride,
-            padding=pad,
-            groups=groups,
-            bias=bias,
-        )
+        self.binary = is_binary
+        self.ksize = ksize
+        if self.binary and self.ksize > 1:
+            self.binary_conv = BinarizeConv2d(in_channels, out_channels,
+                                       kernel_size=ksize, stride=stride, padding=pad,groups=groups, bias=bias)
+            self.downsample = nn.Sequential(
+                nn.AvgPool2d(kernel_size=ksize, stride=stride,padding=pad),
+                nn.Conv2d(in_channels=in_channels, out_channels=out_channels,
+                          kernel_size=1, stride=1, padding=0, bias=bias),
+                nn.BatchNorm2d(out_channels)
+            )
+        else:
+            self.conv = nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=ksize,
+                stride=stride,
+                padding=pad,
+                groups=groups,
+                bias=bias,
+            )
         self.bn = nn.BatchNorm2d(out_channels)
         self.act = get_activation(act, inplace=True)
 
     def forward(self, x):
-        return self.act(self.bn(self.conv(x)))
+        if self.binary and self.ksize > 1:
+            return self.act(self.downsample(x) + self.bn(self.binary_conv(x)))
+        else:
+            return self.act(self.bn(self.conv(x)))
 
     def fuseforward(self, x):
         return self.act(self.conv(x))
@@ -57,7 +72,7 @@ class BaseConv(nn.Module):
 class DWConv(nn.Module):
     """Depthwise Conv + Conv"""
 
-    def __init__(self, in_channels, out_channels, ksize, stride=1, act="silu"):
+    def __init__(self, in_channels, out_channels, ksize, stride=1, act="silu",is_binary=True):
         super().__init__()
         self.dconv = BaseConv(
             in_channels,
@@ -65,7 +80,7 @@ class DWConv(nn.Module):
             ksize=ksize,
             stride=stride,
             groups=in_channels,
-            act=act,
+            act=act,is_binary=is_binary
         )
         self.pconv = BaseConv(
             in_channels, out_channels, ksize=1, stride=1, groups=1, act=act
@@ -86,12 +101,13 @@ class Bottleneck(nn.Module):
         expansion=0.5,
         depthwise=False,
         act="silu",
+             is_binary=False
     ):
         super().__init__()
         hidden_channels = int(out_channels * expansion)
         Conv = DWConv if depthwise else BaseConv
-        self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act)
-        self.conv2 = Conv(hidden_channels, out_channels, 3, stride=1, act=act)
+        self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act,is_binary=is_binary)
+        self.conv2 = Conv(hidden_channels, out_channels, 3, stride=1, act=act,is_binary=is_binary)
         self.use_add = shortcut and in_channels == out_channels
 
     def forward(self, x):
@@ -156,6 +172,7 @@ class CSPLayer(nn.Module):
         expansion=0.5,
         depthwise=False,
         act="silu",
+            is_binary = False
     ):
         """
         Args:
@@ -166,12 +183,12 @@ class CSPLayer(nn.Module):
         # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         hidden_channels = int(out_channels * expansion)  # hidden channels
-        self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act)
-        self.conv2 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act)
-        self.conv3 = BaseConv(2 * hidden_channels, out_channels, 1, stride=1, act=act)
+        self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act,is_binary=is_binary)
+        self.conv2 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act,is_binary=is_binary)
+        self.conv3 = BaseConv(2 * hidden_channels, out_channels, 1, stride=1, act=act,is_binary=is_binary)
         module_list = [
             Bottleneck(
-                hidden_channels, hidden_channels, shortcut, 1.0, depthwise, act=act
+                hidden_channels, hidden_channels, shortcut, 1.0, depthwise, act=act,is_binary=is_binary
             )
             for _ in range(n)
         ]
@@ -188,9 +205,9 @@ class CSPLayer(nn.Module):
 class Focus(nn.Module):
     """Focus width and height information into channel space."""
 
-    def __init__(self, in_channels, out_channels, ksize=1, stride=1, act="silu"):
+    def __init__(self, in_channels, out_channels, ksize=1, stride=1, act="silu",is_binary = False):
         super().__init__()
-        self.conv = BaseConv(in_channels * 4, out_channels, ksize, stride, act=act)
+        self.conv = BaseConv(in_channels * 4, out_channels, ksize, stride, act=act,is_binary = is_binary)
 
     def forward(self, x):
         # shape of x (b,c,w,h) -> y(b,4c,w/2,h/2)

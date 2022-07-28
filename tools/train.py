@@ -44,6 +44,15 @@ def make_parser():
     parser.add_argument(
         "--resume", default=False, action="store_true", help="resume training"
     )
+    parser.add_argument(
+        "--binary_backbone", default=False, action="store_true", help="binary_backbone"
+    )
+    parser.add_argument(
+        "--binary_head", default=False, action="store_true", help="binary_head"
+    )
+    parser.add_argument(
+        "--clip_grad", default=False, action="store_true", help="clip_grad"
+    )
     parser.add_argument("-c", "--ckpt", default=None, type=str, help="checkpoint file")
     parser.add_argument(
         "-e",
@@ -121,12 +130,13 @@ def main(exp: Exp, args):
 if __name__ == "__main__":
     configure_module()
     args = make_parser().parse_args()
-    exp = get_exp(args.exp_file, args.name)
+    exp = get_exp(args.exp_file, args.name,is_binary_backbone=args.binary_backbone,is_binary_head=args.binary_head,clip_grad=args.clip_grad)
     exp.merge(args.opts)
 
     if not args.experiment_name:
         args.experiment_name = exp.exp_name
-
+    # args.experiment_name += "_bnn"
+    # args.experiment_name += "_voc_bnn"
     num_gpu = get_num_devices() if args.devices is None else args.devices
     assert num_gpu <= get_num_devices()
 

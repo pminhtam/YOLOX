@@ -31,10 +31,11 @@ from yolox.utils import (
     setup_logger,
     synchronize
 )
+import torch.nn as nn
 
 
 class Trainer:
-    def __init__(self, exp: Exp, args):
+    def __init__(self, exp: Exp, args,clip_grad=False):
         # init function only defines some basic attr, other attrs like model, optimizer are built in
         # before_train methods.
         self.exp = exp
@@ -50,7 +51,8 @@ class Trainer:
         self.device = "cuda:{}".format(self.local_rank)
         self.use_model_ema = exp.ema
         self.save_history_ckpt = exp.save_history_ckpt
-        self.clip_grad = False
+        self.clip_grad = clip_grad
+        print("trainer.py self.clip_grad : ",self.clip_grad )
         # data/dataloader related attr
         self.data_type = torch.float16 if args.fp16 else torch.float32
         self.input_size = exp.input_size
@@ -109,7 +111,7 @@ class Trainer:
         self.optimizer.zero_grad()
         self.scaler.scale(loss).backward()
         if self.clip_grad:
-            nn.utils.clip_grad_norm_(self.model.parameters(), max_norm = 5)
+            nn.utils.clip_grad_norm_(self.model.parameters(), max_norm = 10)
         self.scaler.step(self.optimizer)
         self.scaler.update()
 
