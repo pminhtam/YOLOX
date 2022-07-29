@@ -1,0 +1,6 @@
+sbatch s_coco_ori.sh
+sbatch s_coco_bnn2_clipgrad.sh
+sbatch s_coco_bnn_clipgrad.sh
+sbatch yolox_voc_bnn2_clipgrad.sh
+sbatch yolox_voc_bnn_clipgrad.sh
+sbatch yolox_voc_ori.sh

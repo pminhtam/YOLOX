@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --tasks-per-node=1
-#SBATCH --mem-per-cpu=6G
+#SBATCH --mem-per-cpu=3G
 #SBATCH --cpus-per-task=32
 #SBATCH --partition=research
 
@@ -31,5 +31,5 @@ wandb login c5a6f4c212b00734d9517784e3e892155a301de0
 #tar -xvf /vinai-public-dataset/VOC2012/VOCtrainval_11-May-2012.tar -C data/
 #tar -xvf /vinai-public-dataset/VOC2007/VOCtrainval_06-Nov-2007.tar -C data/
 #tar -xvf /vinai-public-dataset/VOC2007/VOCtest_06-Nov-2007.tar -C data/
-python -m yolox.tools.train -n yolox-s -d 1 -b 32 -o -expn yolox_s_clip_voc_bnn_fix --binary_backbone --binary_head --clip_grad --resume
+python -m yolox.tools.train -n yolox-s -d 1 -b 32 -o  --data_dir ~/data/VOCdevkit/ -expn yolox_s_clip_voc_bnn_fix --binary_backbone --binary_head --clip_grad --resume  --logger wandb
 ### _fix : just binaize conv with ksize = 3x3 or larger.
