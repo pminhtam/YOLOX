@@ -182,7 +182,8 @@ class WandbLogger(object):
             self.num_log_images = len(val_dataset)
         else:
             self.num_log_images = min(num_eval_images, len(val_dataset))
-        self.log_checkpoints = (log_checkpoints == "True" or log_checkpoints == "true")
+        # self.log_checkpoints = (log_checkpoints == "True" or log_checkpoints == "true")
+        self.log_checkpoints = False
         self._wandb_init = dict(
             project=self.project,
             name=self.name,
@@ -203,11 +204,14 @@ class WandbLogger(object):
         self.run.define_metric("train/*", step_metric="train/step")
 
         if val_dataset and self.num_log_images != 0:
-            self.cats = val_dataset.cats
-            self.id_to_class = {
-                cls['id']: cls['name'] for cls in self.cats
-            }
-            self._log_validation_set(val_dataset)
+            try:
+                self.cats = val_dataset.cats
+                self.id_to_class = {
+                    cls['id']: cls['name'] for cls in self.cats
+                }
+                self._log_validation_set(val_dataset)
+            except:
+                pass
 
     @property
     def run(self):
@@ -381,4 +385,4 @@ class WandbLogger(object):
                 except ValueError:
                     wandb_params.update({k[len(prefix):]: v})
 
-        return cls(config=vars(exp), val_dataset=val_dataset, **wandb_params)
+        return cls(project = args.experiment_name,config=vars(exp), val_dataset=val_dataset, **wandb_params)
