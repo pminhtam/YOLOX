@@ -287,29 +287,33 @@ class Trainer:
 
     def resume_train(self, model):
         if self.args.resume:
-            logger.info("resume training")
-            if self.args.ckpt is None:
-                ckpt_file = os.path.join(self.file_name, "latest" + "_ckpt.pth")
-            else:
-                ckpt_file = self.args.ckpt
-
-            ckpt = torch.load(ckpt_file, map_location=self.device)
-            # resume the model/optimizer state dict
-            model.load_state_dict(ckpt["model"])
-            self.optimizer.load_state_dict(ckpt["optimizer"])
-            self.best_ap = ckpt.pop("best_ap", 0)
-            # resume the training states variables
-            start_epoch = (
-                self.args.start_epoch - 1
-                if self.args.start_epoch is not None
-                else ckpt["start_epoch"]
-            )
-            self.start_epoch = start_epoch
-            logger.info(
-                "loaded checkpoint '{}' (epoch {})".format(
-                    self.args.resume, self.start_epoch
+            try:
+                logger.info("resume training")
+                if self.args.ckpt is None:
+                    ckpt_file = os.path.join(self.file_name, "latest" + "_ckpt.pth")
+                else:
+                    ckpt_file = self.args.ckpt
+                ckpt = torch.load(ckpt_file, map_location=self.device)
+                # resume the model/optimizer state dict
+                model.load_state_dict(ckpt["model"])
+                self.optimizer.load_state_dict(ckpt["optimizer"])
+                self.best_ap = ckpt.pop("best_ap", 0)
+                # resume the training states variables
+                start_epoch = (
+                    self.args.start_epoch - 1
+                    if self.args.start_epoch is not None
+                    else ckpt["start_epoch"]
                 )
-            )  # noqa
+                self.start_epoch = start_epoch
+                logger.info(
+                    "loaded checkpoint '{}' (epoch {})".format(
+                        self.args.resume, self.start_epoch
+                    )
+                )  # noqa
+            except:
+                print("Can't load pretrain from : ", self.file_name)
+                logger.info("Can't load pretrain from : " +  self.file_name)
+                self.start_epoch = 0
         else:
             if self.args.ckpt is not None:
                 logger.info("loading checkpoint for fine tuning")
