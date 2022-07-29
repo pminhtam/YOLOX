@@ -18,6 +18,7 @@ from yolox.utils import configure_module, configure_nccl, configure_omp, get_num
 def make_parser():
     parser = argparse.ArgumentParser("YOLOX train parser")
     parser.add_argument("-expn", "--experiment-name", type=str, default=None)
+    parser.add_argument("--data_dir", type=str, default=None)
     parser.add_argument("-n", "--name", type=str, default=None, help="model name")
 
     # distributed
@@ -130,7 +131,7 @@ def main(exp: Exp, args):
 if __name__ == "__main__":
     configure_module()
     args = make_parser().parse_args()
-    exp = get_exp(args.exp_file, args.name,is_binary_backbone=args.binary_backbone,is_binary_head=args.binary_head,clip_grad=args.clip_grad)
+    exp = get_exp(args.exp_file, args.name,is_binary_backbone=args.binary_backbone,is_binary_head=args.binary_head,clip_grad=args.clip_grad,data_dir=args.data_dir)
     exp.merge(args.opts)
 
     if not args.experiment_name:

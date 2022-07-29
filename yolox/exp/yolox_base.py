@@ -13,12 +13,13 @@ from .base_exp import BaseExp
 
 
 class Exp(BaseExp):
-    def __init__(self,is_binary_backbone=False,is_binary_head=False,clip_grad=False):
+    def __init__(self,is_binary_backbone=False,is_binary_head=False,clip_grad=False,data_dir=None):
         super().__init__()
 
         # ---------------- model config ---------------- #
         # detect classes number of model
-        self.num_classes = 80
+        # self.num_classes = 80
+        # self.num_classes = 20
         # factor of model depth
         self.depth = 1.00
         # factor of model width
@@ -39,8 +40,17 @@ class Exp(BaseExp):
         # dir of dataset images, if data_dir is None, this project will use `datasets` dir
         # self.data_dir = None
         # self.data_dir = "/home/ubuntu/arp_data/VOC/VOCdevkit/"
-        self.dataset_type = "voc"
-        self.data_dir = "/lustre/scratch/client/vinai/users/tampm2/ssd.pytorch/data/VOCdevkit"
+        # self.dataset_type = "voc"
+        # self.data_dir = "/lustre/scratch/client/vinai/users/tampm2/ssd.pytorch/data/VOCdevkit"
+        self.data_dir = data_dir
+        if "coco" in self.data_dir.lower():
+            self.dataset_type = "coco"
+            self.num_classes = 80
+        elif "voc" in self.data_dir.lower():
+            self.dataset_type = "voc"
+            self.num_classes = 20
+        else:
+            raise ValueError("data_dir must be either voc or coco")
         self.is_binary_head = is_binary_head
         self.is_binary_backbone = is_binary_backbone
         self.clip_grad = clip_grad
@@ -81,7 +91,7 @@ class Exp(BaseExp):
         # epoch number used for warmup
         self.warmup_epochs = 5
         # max training epoch
-        self.max_epoch = 300
+        self.max_epoch = 1000
         # minimum learning rate during warmup
         self.warmup_lr = 0
         self.min_lr_ratio = 0.05
@@ -103,7 +113,7 @@ class Exp(BaseExp):
         self.print_interval = 100
         # eval period in epoch, for example,
         # if set to 1, model will be evaluate after every epoch.
-        self.eval_interval = 10
+        self.eval_interval = 50
         # save history checkpoint or not.
         # If set to False, yolox will only save latest and best ckpt.
         self.save_history_ckpt = True
