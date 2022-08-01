@@ -54,6 +54,9 @@ def make_parser():
     parser.add_argument(
         "--clip_grad", default=False, action="store_true", help="clip_grad"
     )
+    parser.add_argument(
+        "--scheduler", default='yoloxwarmcos', type=str, help="scheduler: warmcos, yoloxwarmcos, yoloxsemiwarmcos, multistep"
+    )
     parser.add_argument("-c", "--ckpt", default=None, type=str, help="checkpoint file")
     parser.add_argument(
         "-e",
@@ -131,7 +134,8 @@ def main(exp: Exp, args):
 if __name__ == "__main__":
     configure_module()
     args = make_parser().parse_args()
-    exp = get_exp(args.exp_file, args.name,is_binary_backbone=args.binary_backbone,is_binary_head=args.binary_head,clip_grad=args.clip_grad,data_dir=args.data_dir)
+    exp = get_exp(args.exp_file, args.name,is_binary_backbone=args.binary_backbone,is_binary_head=args.binary_head,
+                  clip_grad=args.clip_grad,data_dir=args.data_dir,scheduler=args.scheduler)
     exp.merge(args.opts)
 
     if not args.experiment_name:
