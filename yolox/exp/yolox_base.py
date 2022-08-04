@@ -13,7 +13,7 @@ from .base_exp import BaseExp
 
 
 class Exp(BaseExp):
-    def __init__(self,is_binary_backbone=False,is_binary_head=False,clip_grad=False,data_dir=None):
+    def __init__(self,is_binary_backbone=False,is_binary_head=False,clip_grad=False,data_dir=None,scheduler=None):
         super().__init__()
 
         # ---------------- model config ---------------- #
@@ -46,9 +46,33 @@ class Exp(BaseExp):
         if "coco" in self.data_dir.lower():
             self.dataset_type = "coco"
             self.num_classes = 80
+            # name of annotation file for training
+            # self.train_ann = "instances_train2017.json"
+            self.train_ann = "instances_train2014.json"
+            # name of annotation file for evaluation
+            # self.val_ann = "instances_val2017.json"
+            self.val_ann = "instances_val2014.json"
+            # name of annotation file for testing
+            # self.test_ann = "instances_test2017.json"
+            self.test_ann = "instances_test2014.json"
+            self.name = "train2014"
+            self.name_val = "val2014"
+            self.name_test = "test2014"
         elif "voc" in self.data_dir.lower():
             self.dataset_type = "voc"
             self.num_classes = 20
+        elif 'mot' in self.data_dir.lower():
+            self.dataset_type = "coco"
+            self.num_classes = 1
+            # name of annotation file for training
+            self.train_ann = "train.json"
+            # name of annotation file for evaluation
+            self.val_ann = "val.json"
+            # name of annotation file for testing
+            self.test_ann = "val.json"
+            self.name = "train"
+            self.name_val = "val"
+            self.name_test = "tests"
         else:
             raise ValueError("data_dir must be either voc or coco")
         self.is_binary_head = is_binary_head
@@ -57,16 +81,6 @@ class Exp(BaseExp):
         print("yolo_base.py  is_binary_head : ", self.is_binary_head)
         print("yolo_base.py  is_binary_backbone : ", self.is_binary_backbone)
         print("yolo_base.py  clip_grad : ", self.clip_grad)
-        # name of annotation file for training
-        # self.train_ann = "instances_train2017.json"
-        self.train_ann = "instances_train2014.json"
-        # name of annotation file for evaluation
-        # self.val_ann = "instances_val2017.json"
-        self.val_ann = "instances_val2014.json"
-        # name of annotation file for testing
-        # self.test_ann = "instances_test2017.json"
-        self.test_ann = "instances_test2014.json"
-        self.name = "train2014"
         # --------------- transform config ----------------- #
         # prob of applying mosaic aug
         self.mosaic_prob = 1.0
@@ -91,14 +105,15 @@ class Exp(BaseExp):
         # epoch number used for warmup
         self.warmup_epochs = 5
         # max training epoch
-        self.max_epoch = 1000
+        self.max_epoch = 300
         # minimum learning rate during warmup
         self.warmup_lr = 0
         self.min_lr_ratio = 0.05
         # learning rate for one image. During training, lr will multiply batchsize.
         self.basic_lr_per_img = 0.01 / 64.0
         # name of LRScheduler
-        self.scheduler = "yoloxwarmcos"
+        # self.scheduler = "yoloxwarmcos"
+        self.scheduler = scheduler
         # last #epoch to close augmention like mosaic
         self.no_aug_epochs = 15
         # apply EMA during training
@@ -308,7 +323,7 @@ class Exp(BaseExp):
             valdataset = COCODataset(
                 data_dir=self.data_dir,
                 json_file=self.val_ann if not testdev else self.test_ann,
-                name="val2014" if not testdev else "test2014",
+                name=self.name_val if not testdev else self.name_test,
                 img_size=self.test_size,
                 preproc=ValTransform(legacy=legacy),
             )
