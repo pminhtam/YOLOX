@@ -35,7 +35,7 @@ import torch.nn as nn
 
 
 class Trainer:
-    def __init__(self, exp: Exp, args,clip_grad=False):
+    def __init__(self, exp: Exp, args,clip_grad=False,is_binary_backbone=False,is_binary_head=False):
         # init function only defines some basic attr, other attrs like model, optimizer are built in
         # before_train methods.
         self.exp = exp
@@ -53,6 +53,8 @@ class Trainer:
         self.save_history_ckpt = exp.save_history_ckpt
         self.clip_grad = clip_grad
         print("trainer.py self.clip_grad : ",self.clip_grad )
+        self.is_binary_head = is_binary_head
+        self.is_binary_backbone = is_binary_backbone
         # data/dataloader related attr
         self.data_type = torch.float16 if args.fp16 else torch.float32
         self.input_size = exp.input_size
@@ -61,7 +63,8 @@ class Trainer:
         # metric record
         self.meter = MeterBuffer(window_size=exp.print_interval)
         self.file_name = os.path.join(exp.output_dir, args.experiment_name)
-
+        self.REGULARIZATION_LOSS_WEIGHT = 0.0
+        self.PRIOR_LOSS_WEIGHT = 0.0
         if self.rank == 0:
             os.makedirs(self.file_name, exist_ok=True)
 
@@ -83,16 +86,32 @@ class Trainer:
 
     def train_in_epoch(self):
         for self.epoch in range(self.start_epoch, self.max_epoch):
+            if self.epoch > 101 and ( self.is_binary_head or self.is_binary_backbone):
+                self.REGULARIZATION_LOSS_WEIGHT = 0.1
+                self.PRIOR_LOSS_WEIGHT = 0.2
             self.before_epoch()
             self.train_in_iter()
             self.after_epoch()
 
     def train_in_iter(self):
+        # with torch.profiler.profile(
+        #         schedule=torch.profiler.schedule(
+        #             wait=2,
+        #             warmup=2,
+        #             active=20,
+        #             repeat=1),
+        #         on_trace_ready=torch.profiler.tensorboard_trace_handler(os.path.join(self.file_name, "profiler/")),
+        #         with_stack=True,
+        #         activities=[
+        #             torch.profiler.ProfilerActivity.CPU,
+        #             torch.profiler.ProfilerActivity.CUDA,
+        #         ]
+        # ) as profiler:
         for self.iter in range(self.max_iter):
             self.before_iter()
             self.train_one_iter()
             self.after_iter()
-
+                # profiler.step()
     def train_one_iter(self):
         iter_start_time = time.time()
 
@@ -104,14 +123,15 @@ class Trainer:
         data_end_time = time.time()
 
         with torch.cuda.amp.autocast(enabled=self.amp_training):
-            outputs = self.model(inps, targets)
-
+            outputs = self.model(inps, targets,self.REGULARIZATION_LOSS_WEIGHT,self.PRIOR_LOSS_WEIGHT)
+        loss_r = outputs['loss_r']
+        loss_p = outputs['loss_p']
         loss = outputs["total_loss"]
-
+        loss = loss +  loss_r + loss_p
         self.optimizer.zero_grad()
         self.scaler.scale(loss).backward()
         if self.clip_grad:
-            nn.utils.clip_grad_norm_(self.model.parameters(), max_norm = 10)
+            nn.utils.clip_grad_norm_(self.model.parameters(), max_norm = 5)
         self.scaler.step(self.optimizer)
         self.scaler.update()
 
