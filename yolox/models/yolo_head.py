@@ -141,13 +141,13 @@ class YOLOXHead(nn.Module):
             b.data.fill_(-math.log((1 - prior_prob) / prior_prob))
             conv.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
 
-    def forward(self, xin, labels=None, imgs=None):
+    def forward(self, xin, labels=None, imgs=None,REGULARIZATION_LOSS_WEIGHT=0.0,PRIOR_LOSS_WEIGHT=0.0):
         outputs = []
         origin_preds = []
         x_shifts = []
         y_shifts = []
         expanded_strides = []
-        # sources = list()
+        feature_maps = []
 
         for k, (cls_conv, reg_conv, stride_this_level, x) in enumerate(
             zip(self.cls_convs, self.reg_convs, self.strides, xin)
@@ -155,15 +155,15 @@ class YOLOXHead(nn.Module):
             x = self.stems[k](x)
             cls_x = x
             reg_x = x
-            # sources.append(x)
+            feature_maps.append(x)
             cls_feat = cls_conv(cls_x)
             cls_output = self.cls_preds[k](cls_feat)
-            # sources.append(cls_feat)
+            feature_maps.append(cls_feat)
 
             reg_feat = reg_conv(reg_x)
             reg_output = self.reg_preds[k](reg_feat)
             obj_output = self.obj_preds[k](reg_feat)
-            # sources.append(reg_feat)
+            feature_maps.append(reg_feat)
 
             if self.training:
                 output = torch.cat([reg_output, obj_output, cls_output], 1)
@@ -205,6 +205,7 @@ class YOLOXHead(nn.Module):
                 torch.cat(outputs, 1),
                 origin_preds,
                 dtype=xin[0].dtype,
+                feature_maps = feature_maps,REGULARIZATION_LOSS_WEIGHT=REGULARIZATION_LOSS_WEIGHT,PRIOR_LOSS_WEIGHT=PRIOR_LOSS_WEIGHT
             )
         else:
             self.hw = [x.shape[-2:] for x in outputs]
@@ -264,6 +265,7 @@ class YOLOXHead(nn.Module):
         outputs,
         origin_preds,
         dtype,
+            feature_maps,REGULARIZATION_LOSS_WEIGHT=0.0,PRIOR_LOSS_WEIGHT=0.0
     ):
         bbox_preds = outputs[:, :, :4]  # [batch, n_anchors_all, 4]
         obj_preds = outputs[:, :, 4].unsqueeze(-1)  # [batch, n_anchors_all, 1]
@@ -392,6 +394,45 @@ class YOLOXHead(nn.Module):
             l1_targets = torch.cat(l1_targets, 0)
 
         num_fg = max(num_fg, 1)
+        loss_r = 0.
+        loss_p = 0.
+        if REGULARIZATION_LOSS_WEIGHT > 0.0 and PRIOR_LOSS_WEIGHT > 0.0:
+            num_classes = cls_preds.shape[-1]
+            batch_size = cls_preds.shape[0]
+            # exit(0)
+            fg_masks_view = fg_masks.view(batch_size,-1)
+            loss_count = 0.
+            for batch_idx in range(batch_size):
+                obj_pred_one_img = obj_preds[batch_idx, :, :].view(-1)[fg_masks_view[batch_idx, :].view(-1)]
+                arg_max_clss_one_img = torch.argmax(cls_preds[batch_idx, :, :][fg_masks_view[batch_idx, :].view(-1)], dim=1)
+                # print(arg_max_clss)
+                labels_one_img = labels[batch_idx][labels[batch_idx].sum(dim=1) > 0]
+                # import pdb;
+                # pdb.set_trace()
+                for j in range(num_classes):
+                    scores = obj_pred_one_img[arg_max_clss_one_img==j]
+                    if scores.size()[0] == 0:
+                        continue
+                    gt_num = sum(labels_one_img[:,0]==j)
+                    if gt_num == 0:
+                        continue
+                    # import pdb; pdb.set_trace()
+                    scores_ = nn.Softmax(dim=-1)(scores)
+                    scores_sum = scores_.sum().item()  # no grad
+                    scores_ = scores_ / scores_sum  # normalization
+                    log_scores = scores_ * torch.log(scores_)
+                    loss_p += (-1. * log_scores.sum() / float(gt_num))
+                    loss_count += 1.
+                    # print(loss_p)
+            loss_p /= (loss_count + 1e-6)
+            # print("loss_p  : ",loss_p)
+            f_num = len(feature_maps)
+            # print("f_num : ",f_num)
+            for f_m in feature_maps:
+                loss_r += (f_m ** 2).mean()
+            loss_r /= float(f_num)
+            # print("loss_r  :",loss_r)
+            # exit(0)
         loss_iou = (
             self.iou_loss(bbox_preds.view(-1, 4)[fg_masks], reg_targets)
         ).sum() / num_fg
@@ -420,6 +461,7 @@ class YOLOXHead(nn.Module):
             loss_cls,
             loss_l1,
             num_fg / max(num_gts, 1),
+            loss_p, loss_r
         )
 
     def get_l1_target(self, l1_target, gt, stride, x_shifts, y_shifts, eps=1e-8):
