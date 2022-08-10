@@ -54,15 +54,26 @@ def make_parser():
         action="store_true",
         help="decode in inference or not"
     )
-
+    parser.add_argument(
+        "--binary_backbone", default=False, action="store_true", help="binary_backbone"
+    )
+    parser.add_argument(
+        "--binary_head", default=False, action="store_true", help="binary_head"
+    )
     return parser
 
+class sign_onnx(nn.Module):
+    """export-friendly version of nn.SiLU()"""
+
+    @staticmethod
+    def forward(x):
+        return torch.sign(x)
 
 @logger.catch
 def main():
     args = make_parser().parse_args()
     logger.info("args value: {}".format(args))
-    exp = get_exp(args.exp_file, args.name)
+    exp = get_exp(args.exp_file, args.name,is_binary_backbone=args.binary_backbone,is_binary_head=args.binary_head)
     exp.merge(args.opts)
 
     if not args.experiment_name:
@@ -84,7 +95,7 @@ def main():
     model.load_state_dict(ckpt)
     model = replace_module(model, nn.SiLU, SiLU)
     model.head.decode_in_inference = args.decode_in_inference
-
+    # print(model)
     logger.info("loading checkpoint done.")
     dummy_input = torch.randn(args.batch_size, 3, exp.test_size[0], exp.test_size[1])
 

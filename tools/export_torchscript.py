@@ -33,7 +33,12 @@ def make_parser():
         default=None,
         nargs=argparse.REMAINDER,
     )
-
+    parser.add_argument(
+        "--binary_backbone", default=False, action="store_true", help="binary_backbone"
+    )
+    parser.add_argument(
+        "--binary_head", default=False, action="store_true", help="binary_head"
+    )
     return parser
 
 
@@ -41,7 +46,7 @@ def make_parser():
 def main():
     args = make_parser().parse_args()
     logger.info("args value: {}".format(args))
-    exp = get_exp(args.exp_file, args.name)
+    exp = get_exp(args.exp_file, args.name,is_binary_backbone=args.binary_backbone,is_binary_head=args.binary_head)
     exp.merge(args.opts)
 
     if not args.experiment_name:

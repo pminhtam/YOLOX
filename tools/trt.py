@@ -31,6 +31,12 @@ def make_parser():
         "-w", '--workspace', type=int, default=32, help='max workspace size in detect'
     )
     parser.add_argument("-b", '--batch', type=int, default=1, help='max batch size in detect')
+    parser.add_argument(
+        "--binary_backbone", default=False, action="store_true", help="binary_backbone"
+    )
+    parser.add_argument(
+        "--binary_head", default=False, action="store_true", help="binary_head"
+    )
     return parser
 
 
@@ -38,7 +44,7 @@ def make_parser():
 @torch.no_grad()
 def main():
     args = make_parser().parse_args()
-    exp = get_exp(args.exp_file, args.name)
+    exp = get_exp(args.exp_file, args.name,is_binary_backbone=args.binary_backbone,is_binary_head=args.binary_heads)
     if not args.experiment_name:
         args.experiment_name = exp.exp_name
 
