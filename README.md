@@ -1,4 +1,10 @@
 
+
+bnn_: Binary all
+bnn2 : binary backbone
+bnn_b: other implemetaion
+bnn_c: other implemetaion
+
 ```shell
 python -m yolox.tools.train -n yolox-s -d 1 -b 16 -o  --resume YOLOX_outputs/yolox_s/latest_ckpt.pth  --logger tensorboard --cache 
 ```
@@ -13,6 +19,17 @@ python -m yolox.tools.train -n yolox-s -d 1 -b 64 -o --cache -expn bnn_voc
 ```shell
 CUDA_VISIBLE_DEVICES=2 python -m yolox.tools.train -n yolox-s -d 1 -b 2 -o
 ```
+
+Export 
+```
+python tools/export_onnx.py --output-name yolox_s.onnx -n yolox-s  --binary_backbone --binary_head -o 11 -c best_ckpt.pth
+```
+Run 
+```shell
+ python demo/ONNXRuntime/onnx_inference.py -m yolox_s.onnx  -i assets/demo.png -o ./ -s 0.3 --input_shape 640,640
+```
+
+
 <div align="center"><img src="assets/logo.png" width="350"></div>
 <img src="assets/demo.png" >
 
