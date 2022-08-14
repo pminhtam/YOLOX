@@ -29,6 +29,13 @@ Run
  python demo/ONNXRuntime/onnx_inference.py -m yolox_s.onnx  -i assets/demo.png -o ./ -s 0.3 --input_shape 640,640
 ```
 
+```
+ python demo/ONNXRuntime/onnx_mot_infer.py -m yolox_s.onnx  -s 0.3 --input_shape 640,640
+ ```
+
+
+ python demo/ONNXRuntime/onnx_mot_infer.py -m yolox_s_mot_bnn_c_clip_reg_weight2/yolox_s.onnx  -s 0.3 --input_shape 640,640
+ python demo/ONNXRuntime/onnx_mot_infer.py -m yolox_s_mot_c_ori/yolox_s.onnx  -s 0.3 --input_shape 640,640
 
 <div align="center"><img src="assets/logo.png" width="350"></div>
 <img src="assets/demo.png" >
