@@ -43,6 +43,8 @@ class Exp(BaseExp):
         # self.dataset_type = "voc"
         # self.data_dir = "/lustre/scratch/client/vinai/users/tampm2/ssd.pytorch/data/VOCdevkit"
         self.data_dir = data_dir
+        if self.data_dir is None:
+            self.data_dir = "mot"
         if "coco" in self.data_dir.lower():
             self.dataset_type = "coco"
             self.num_classes = 80
@@ -111,6 +113,7 @@ class Exp(BaseExp):
         self.min_lr_ratio = 0.05
         # learning rate for one image. During training, lr will multiply batchsize.
         self.basic_lr_per_img = 0.01 / 64.0
+        # self.basic_lr_per_img = 0.001 / 64.0
         # name of LRScheduler
         # self.scheduler = "yoloxwarmcos"
         self.scheduler = scheduler
@@ -125,7 +128,7 @@ class Exp(BaseExp):
         self.momentum = 0.9
         # log period in iter, for example,
         # if set to 1, user could see log every iteration.
-        self.print_interval = 100
+        self.print_interval = 200
         # eval period in epoch, for example,
         # if set to 1, model will be evaluate after every epoch.
         self.eval_interval = 50
@@ -230,7 +233,8 @@ class Exp(BaseExp):
             drop_last=False,
             mosaic=not no_aug,
         )
-
+        if batch_size < self.data_num_workers:
+            self.data_num_workers = batch_size
         dataloader_kwargs = {"num_workers": self.data_num_workers, "pin_memory": True}
         dataloader_kwargs["batch_sampler"] = batch_sampler
 
@@ -381,7 +385,7 @@ class Exp(BaseExp):
 
     def get_trainer(self, args):
         from yolox.core import Trainer
-        trainer = Trainer(self, args,clip_grad=self.clip_grad)
+        trainer = Trainer(self, args,clip_grad=self.clip_grad,is_binary_backbone=self.is_binary_backbone,is_binary_head=self.is_binary_head)
         # NOTE: trainer shouldn't be an attribute of exp object
         return trainer
 

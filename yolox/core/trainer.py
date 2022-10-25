@@ -86,9 +86,11 @@ class Trainer:
 
     def train_in_epoch(self):
         for self.epoch in range(self.start_epoch, self.max_epoch):
-            if self.epoch > 101 and ( self.is_binary_head or self.is_binary_backbone):
-                self.REGULARIZATION_LOSS_WEIGHT = 0.1
-                self.PRIOR_LOSS_WEIGHT = 0.2
+            if self.epoch > 51 and ( self.is_binary_head or self.is_binary_backbone):
+                # self.REGULARIZATION_LOSS_WEIGHT = 0.1
+                # self.PRIOR_LOSS_WEIGHT = 0.2
+                self.REGULARIZATION_LOSS_WEIGHT = 2
+                self.PRIOR_LOSS_WEIGHT = 2
             self.before_epoch()
             self.train_in_iter()
             self.after_epoch()

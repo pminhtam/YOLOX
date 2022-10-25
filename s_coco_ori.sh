@@ -6,10 +6,10 @@
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --tasks-per-node=1
-#SBATCH --mem-per-cpu=8G
+#SBATCH --mem-per-cpu=4G
 #SBATCH --cpus-per-task=32
 #SBATCH --partition=applied
-#SBATCH --nodelist=sdc2-hpc-dgx-a100-006
+#SBATCH --nodelist=sdc2-hpc-dgx-a100-014
 
 nvidia-smi
 module purge
@@ -28,6 +28,6 @@ pip install tensorboard
 pip install -v -e .
 pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
 pip install wandb
-#wandb login c5a6f4c212b00734d9517784e3e892155a301de0
-python -m yolox.tools.train -n yolox-s -d 1 -b 32 -o -expn yolox_s_coco_c_ori --cache --data_dir /lustre/scratch/client/vinai/users/tampm2/ssd.pytorch/data/coco/ --resume
+  #wandb login c5a6f4c212b00734d9517784e3e892155a301de0
+python -m yolox.tools.train -n yolox-s -d 1 -b 32 -o -expn yolox_s_coco_c_ori --data_dir /lustre/scratch/client/vinai/users/tampm2/ssd.pytorch/data/coco/ --resume
 ### _fix : just binaize conv with ksize = 3x3 or larger.

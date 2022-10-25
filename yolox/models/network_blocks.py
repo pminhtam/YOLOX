@@ -25,7 +25,12 @@ def get_activation(name="silu", inplace=True):
         raise AttributeError("Unsupported act type: {}".format(name))
     return module
 
-from yolox.models.binary_utils import BinarizeConv2d
+# from yolox.models.binary_utils import BinarizeConv2d
+# from yolox.models.binary_b_utils import BinarizeConv2d_func
+# from yolox.models.binary_c_utils import BinarizeConv2d
+# from yolox.models.binary_d_utils import BinarizeConv2d
+# from yolox.models.binary_e_utils import BinarizeConv2d
+from yolox.models.binary_f_utils import BinarizeConv2d
 class BaseConv(nn.Module):
     """A Conv2d -> Batchnorm -> silu/leaky relu block"""
 

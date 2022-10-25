@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --tasks-per-node=1
-#SBATCH --mem-per-cpu=4G
+#SBATCH --mem-per-cpu=1600M
 #SBATCH --cpus-per-task=32
 #SBATCH --partition=applied
 #SBATCH --nodelist=sdc2-hpc-dgx-a100-008

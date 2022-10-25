@@ -83,6 +83,7 @@ class LRScheduler:
                 self.iters_per_epoch_semi,
             )
         elif name == "multistep":  # stepwise lr schedule
+            self.milestones = [100, 200, 300, 400, 500, 600, 700]
             milestones = [
                 int(self.total_iters * milestone / self.total_epochs)
                 for milestone in self.milestones
